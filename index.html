@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de QR</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.18);
+    --accent: #e8ff47;
+    --accent-dim: rgba(232,255,71,0.12);
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --text-dim: #555;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.25rem 4rem;
+  }
+
+  /* Fondo sutil con grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 560px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .label-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .label-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 5vw, 2.4rem);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-top: 4px;
+  }
+
+  /* Panel principal */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  /* Campo URL */
+  .url-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+  }
+
+  .url-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .url-prefix {
+    position: absolute;
+    left: 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px 12px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,255,71,0.08);
+  }
+
+  input[type="text"]::placeholder { color: var(--text-dim); }
+
+  /* Opciones secundarias */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  /* Colores */
+  .color-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .color-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .color-pick {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .color-pick:hover { border-color: var(--border-hover); }
+
+  .color-pick input[type="color"] {
+    width: 22px; height: 22px;
+    border: none; padding: 0;
+    background: none; cursor: pointer;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .color-pick span {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Divisor */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* Botón generar */
+  .btn-generate {
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px 24px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: -0.01em;
+    transition: transform 0.15s, opacity 0.15s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-generate:hover {
+    opacity: 0.9;
+    box-shadow: 0 0 24px rgba(232,255,71,0.25);
+  }
+
+  .btn-generate:active { transform: scale(0.98); }
+
+  .btn-generate svg { flex-shrink: 0; }
+
+  /* Error */
+  .error-msg {
+    font-size: 12px;
+    color: #ff6b6b;
+    font-family: var(--mono);
+    display: none;
+    padding: 2px 0 0 2px;
+  }
+
+  /* Resultado */
+  .result-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .qr-frame {
+    background: #ffffff;
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    box-shadow: 0 0 40px rgba(232,255,71,0.1);
+  }
+
+  #qr-output canvas,
+  #qr-output img { display: block; }
+
+  .qr-meta {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .qr-url-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .qr-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(232,255,71,0.2);
+  }
+
+  .btn-download {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(232,255,71,0.4);
+    border-radius: var(--radius-sm);
+    padding: 11px 20px;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-download:hover {
+    background: var(--accent-dim);
+    box-shadow: 0 0 16px rgba(232,255,71,0.1);
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 2.5rem;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    text-align: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    body { padding: 2rem 1rem 3rem; }
+    .options-grid { grid-template-columns: 1fr; }
+    .color-row { grid-template-columns: 1fr; }
+    .panel, .result-panel { padding: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="label-tag">Herramienta gratuita</div>
+    <h1>Generador de <span>QR</span></h1>
+    <p class="subtitle">Crea códigos QR para páginas web y catálogos. Sin registro, sin límites.</p>
+  </header>
+
+  <div class="panel">
+
+    <!-- URL -->
+    <div class="url-group">
+      <span class="field-label">URL o texto</span>
+      <input type="text" id="qr-url" placeholder="https://tuempresa.com/catalogo" autocomplete="off" />
+      <span class="error-msg" id="error-msg">Ingresa una URL o texto válido.</span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Opciones -->
+    <div class="options-grid">
+      <div class="option-group">
+        <span class="field-label">Tamaño</span>
+        <select id="qr-size">
+          <option value="128">128 px — web pequeño</option>
+          <option value="200" selected>200 px — estándar</option>
+          <option value="300">300 px — grande</option>
+          <option value="400">400 px — impresión</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <span class="field-label">Corrección de error</span>
+        <select id="qr-correction">
+          <option value="L">L — URL corta</option>
+          <option value="M" selected>M — recomendado</option>
+          <option value="H">H — con logo encima</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Colores -->
+    <div class="color-row">
+      <div class="color-group">
+        <span class="field-label">Color QR</span>
+        <label class="color-pick">
+          <input type="color" id="qr-dark" value="#000000" oninput="updateColorLabel('qr-dark','dark-label')">
+          <span id="dark-label">#000000</span>
+        </label>
+      </div>
+      <div class="color-group">
+        <span class="field-label">Fondo</span>
+        <label class="color-pick">
+          <input type="color" id="qr-light" value="#ffffff" oninput="updateColorLabel('qr-light','light-label')">
+          <span id="light-label">#ffffff</span>
+        </label>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <button class="btn-generate" onclick="generateQR()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg>
+      Generar QR
+    </button>
+
+  </div>
+
+  <!-- Resultado -->
+  <div class="result-panel" id="result-panel">
+    <div class="qr-frame">
+      <div id="qr-output"></div>
+    </div>
+    <div class="qr-meta">
+      <div class="qr-url-box" id="qr-url-display"></div>
+      <div class="qr-stats">
+        <span class="stat-pill" id="stat-size"></span>
+        <span class="stat-pill" id="stat-level"></span>
+        <span class="stat-pill">PNG listo</span>
+      </div>
+      <button class="btn-download" onclick="downloadQR()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar PNG
+      </button>
+    </div>
+  </div>
+
+  <footer>sin servidor · sin registro · 100% en tu navegador</footer>
+
+</div>
+
+<script>
+  function updateColorLabel(inputId, labelId) {
+    document.getElementById(labelId).textContent = document.getElementById(inputId).value;
+  }
+
+  function generateQR() {
+    const url = document.getElementById('qr-url').value.trim();
+    const errMsg = document.getElementById('error-msg');
+
+    if (!url) {
+      errMsg.style.display = 'block';
+      return;
+    }
+    errMsg.style.display = 'none';
+
+    const size = parseInt(document.getElementById('qr-size').value);
+    const darkColor = document.getElementById('qr-dark').value;
+    const lightColor = document.getElementById('qr-light').value;
+    const correction = document.getElementById('qr-correction').value;
+    const corrMap = { L: QRCode.CorrectLevel.L, M: QRCode.CorrectLevel.M, H: QRCode.CorrectLevel.H };
+    const levelNames = { L: 'Corrección L', M: 'Corrección M', H: 'Corrección H' };
+
+    const output = document.getElementById('qr-output');
+    output.innerHTML = '';
+
+    new QRCode(output, {
+      text: url,
+      width: size,
+      height: size,
+      colorDark: darkColor,
+      colorLight: lightColor,
+      correctLevel: corrMap[correction]
+    });
+
+    document.getElementById('qr-url-display').textContent = url;
+    document.getElementById('stat-size').textContent = size + ' × ' + size + ' px';
+    document.getElementById('stat-level').textContent = levelNames[correction];
+
+    const panel = document.getElementById('result-panel');
+    panel.style.display = 'flex';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function downloadQR() {
+    const canvas = document.querySelector('#qr-output canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    const urlVal = document.getElementById('qr-url').value.trim();
+    const slug = urlVal.replace(/https?:\/\//, '').replace(/[^a-z0-9]/gi, '-').slice(0, 30);
+    link.download = 'qr-' + (slug || 'code') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  document.getElementById('qr-url').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') generateQR();
+  });
+</script>
+
+</body>
+</html>
